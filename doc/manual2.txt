@@ -1,0 +1,340 @@
+
+=======================================================
+                      ゆいちゃっとPro改造マニュアル
+                                        1997年4月5日初版発行
+                                        1998年1月14日改訂
+=======================================================
+
+◆徒然なるままに.....
+ゆいちゃっとの魅力（？）の一つは、やっぱり改造サポートですよね～。
+個人的には、ゆいちゃっとPro1.0で十分だと思いますけど、
+チャットの用途や管理人の意向などで、微妙に機能を変えた方が有効なことはよくあります。はい....。（個人的経験として....ね。）
+何カ所も書き換える必要のある場合は、改造版としてリリースしますけど、
+1,2カ所で済む場合のささやかな場合についてこのマニュアルにまとめてます。
+他には、
+http://www.cup.com/yui/chat/free/Pro5/index.html
+にも少し公開しています。
+=======================================================
+◆ロム抑制チャットへの改造方法
+◆メールアドレス有りで、タグを許可するチャットへの改造方法
+◆タグ完全禁止チャットへの改造方法
+◆入室画面をシンプルに....
+◆POSTメソッドで作動するようにする。
+◆外部サイト（他人のホームページ）からの書き込みを禁止する。
+◆入室メッセージを書き込まない..。
+◆退室メッセージを書き込まない。
+◆BGMを鳴らす。
+◆ログを二重にとる。--2種類の改造方法あり。
+◆コマンド機能使用時の♪～が嫌っっ--2種類の改造方法あり。
+◆ホスト名表示が嫌っっ
+◆アクセス時に簡易メッセージを出す。（ピンポンシステム...）
+◆タグチェック方法を、特定のタグのみ許可するようにする。
+◆タグ有効/無効切り換えスイッチ。（これは便利！）
+◆一定時間発言が無かったらログを削除する。
+◆特定の人だけ入室メッセージを変える。
+
+以下は、別に入手できるもの。
+http://www.cup.com/yui/chat/free/Pro5/index.html
+◆入室後、各種設定を変更しても再入室にならない
+◆入室メッセージをランダムにする。
+◆退室メッセージをランダムにする。
+◆参加者表示に参加者の名前色をつける。
+◆退室ボタンを画像にする。
+◆参加者人数の変化を音で検知？？（試作中）
+◆発言復活ボタンを追加する。
+◆＞相手☆　を自動追加する。
+
+=======================================================
+◆ロム抑制チャットへの改造方法
+下記の3操作をすべて行う。
+
+(1)index.htmlの下フレーム
+  <frame src="chat.cgi?window=50&reload=150&mode=checked" name="down" marginwidth=4 marginheight=4>を、
+  <frame src="pre.html" name="down" marginwidth=4 marginheight=4>
+のように、別のhtmlにリンクさせる。pre.htmlは、自分で適当に作る。
+
+(2)pref.cgiで定義される$chat_file = './chat_log'; のchat_logという名称を変更する。
+例えば、c_datとか。変更後、その名前の空ファイルを設置し、パーミションを設定するのを忘れないこと。サーバによっては、chat_logへの直接アクセスが可能なため。
+
+(3)pref.cgiの、sanka関数内で
+	push (@sanka3, "$handle☆") if($handle ne $host2);
+	push (@sanka3, "$name☆") if($name ne $host);
+の二行を、それぞれ、
+	push (@sanka3, "$handle☆");
+	push (@sanka3, "$name☆");
+とする。これにより、従来は、名前を入力していた人だけ、参加者表示をしていたのが、アクセスした時点で、ホスト名を表示するようになる。
+
+◆メールアドレス有りで、タグを許可するチャットへの改造方法
+
+chat.cgi中のwrite関数で..
+	}elsif ($email) {
+		$value = "<FONT COLOR=\"$color\"><B>$name</B></FONT> <A HREF=\"mailto:$email\" TARGET=\"_top\">|&gt;</A> <B>$chat $emoji</B><FONT COLOR=\"#888888\" SIZE=-1>($date $host)</FONT><HR>\n";
+		}else {
+			$value = "<FONT COLOR=\"$color\"><B>$name</B></FONT> &gt; <B>$chat $emoji</B><FONT COLOR=\"#888888\" SIZE=-1>($date $host)</FONT><HR>\n";
+		}
+を、
+	}elsif ($email=~/([\w\-]+)@(.+)\.(.+)/) {
+		$value = "<FONT COLOR=\"$color\"><B>$name</B></FONT> <A HREF=\"mailto:$email\" TARGET=\"_top\">|&gt;</A> <B>$chat $emoji</B><FONT COLOR=\"#888888\" SIZE=-1>($date $host)</FONT><HR>\n";
+		}else {
+$chat=~s/</&lt;/g;
+			$value = "<FONT COLOR=\"$color\"><B>$name</B></FONT> &gt; <B>$chat $emoji</B><FONT COLOR=\"#888888\" SIZE=-1>($date $host)</FONT><HR>\n";
+		}
+のように修正する。ただし、この方法によるタグ抑止への実効性は疑問である。
+
+◆タグ完全禁止チャットへの改造方法
+chat.cgi中のwrite関数の2行目で、
+&tag if ($chat=~s/\t/</g);
+を、
+$chat=~s/\t/&lt;/g;
+に変更したのち、
+tag関数を削除する。（すなわち   sub tag{・・・・・}#tag END  ここまでを削除）
+
+◆入室画面をシンプルに....
+enter.cgi の sub htmlenter　を書き換えます。
+<TR><TD>名前の色:<INPUT TYPE=text NAME="color" SIZE="10" VALUE="$color"></TD></TR>
+を、
+<TR><TD>名前の色:<SELECT NAME="color" SIZE="1">
+<OPTION SELECTED>$color
+<OPTION>red<OPTION>blue<OPTION>deeppink
+<OPTION>green<OPTION>white
+</SELECT></TD></TR>
+にしてみましょう。
+
+<TR><TD><INPUT TYPE=checkbox NAME="autoclear" VALUE="checked" $autoclear>発言時自動消去(JavaScript使用)</TD></TR>
+の部分は、
+<INPUT TYPE=hidden NAME="autoclear" VALUE="$autoclear" >
+だけにして隠します。
+
+同様に
+<TR><TD><INPUT TYPE=checkbox NAME="cook" VALUE="ok" checked>入力データをブラウザに記憶させる</TD></TR>
+も、
+<INPUT TYPE=hidden NAME="cook" VALUE="ok" >
+にします。
+
+<TR><TD>画面モード(フレーム):<INPUT TYPE=checkbox NAME="mode" VALUE="checked" $mode>利用する。</TD></TR>
+は、
+<INPUT TYPE=hidden NAME="mode" VALUE="checked" >
+にするとか...。
+
+◆POSTメソッドで作動するようにする。
+pref.cgi中の初期設定を、GETからPOSTに変更し、
+pref.cgi中のsub decodeで、
+$buffer = $ENV{'QUERY_STRING'};
+を、
+if ($ENV{'REQUEST_METHOD'} eq "POST") { read(STDIN, $buffer, $ENV{'CONTENT_LENGTH'}); }
+else { $buffer = $ENV{'QUERY_STRING'}; }
+にする。
+
+◆外部サイト（他人のホームページ）からの書き込みを禁止する。
+
+pref.cgi中のsub writelogで、
+sub writelog{
+を、
+sub writelog{
+return unless( ($ENV{'HTTP_REFERER'} eq '') || ($ENV{'HTTP_REFERER'}
+=~m!http://www.test.or.jp/~test/!));
+のようにする。http://www.test.or.jp/~test/は、CGI設置ディレクトリのURLにする。
+もしくは、
+pref.cgi中のsub initで、
+sub init{
+を、
+sub init{
+exit unless( ($ENV{'HTTP_REFERER'} eq '') || ($ENV{'HTTP_REFERER'}
+=~m!http://www.test.or.jp/~test/!));
+のようにする。http://www.test.or.jp/~test/は、CGI設置ディレクトリのURLにする。
+
+◆入室メッセージを書き込まない..。
+enter.cgiから、
+&readlog;
+$brauza = $ENV{'HTTP_USER_AGENT'};
+$brauza =~s/<//g;
+$value = "<FONT COLOR=\"#0000ff\"><B>管理人</B></FONT> > <B><FONT COLOR=\"$color\"
+SIZE=+2>$name</FONT></B><FONT COLOR=\"red\"><B>さん、おいでやすぅ。</B>
+$brauza</FONT><FONT COLOR=\"#888888\" SIZE=-1>($date $host)$histry</FONT><HR>\n";
+&writelog;
+を削除する。
+
+◆退室メッセージを書き込まない。
+chat.cgiの、sub writeで、
+if ($chat eq '退室') {
+$value = "<FONT COLOR=\"blue\"><B>管理人</B></FONT> > <B><FONT COLOR=\"$color\"
+SIZE=+2>$name</FONT><FONT COLOR=\"red\">さん、またきておくれやすぅ。</FONT></B><FONT
+COLOR=\"#888888\" SIZE=-1>($date $host)</FONT><HR>\n";
+&writelog;
+print "Location: $endpage\n\n";
+&ended;
+}elsif ($email) {
+を、
+if ($chat eq '退室') {
+print "Location: $endpage\n\n";
+&ended;
+}elsif ($email) {
+とする。　　　
+
+◆BGMを鳴らす。
+enter.cgiの、sub htmlで、
+if($mode eq 'checked'){
+	print <<"_HTML_";
+<BASE TARGET="down">
+<TABLE border=0 cellpadding=0 cellspacing=0>
+<FORM METHOD="$method" ACTION="chat.cgi" TARGET="down">
+<TR><TD colspan=2 >[<A HREF="http://www.big.or.jp/~vampire/support/list.cgi"TARGET="_blank">サポート掲示板</A>][<A HREF="./tool.cgi?rank"TARGET="down">発言ランキング</A>]</TD></TR>
+のところなどに、
+if($mode eq 'checked'){
+	print <<"_HTML_";
+<BASE TARGET="down">
+<TABLE border=0 cellpadding=0 cellspacing=0>
+<FORM METHOD="$method" ACTION="chat.cgi" TARGET="down">
+<TR><TD colspan=2 >[<A HREF="http://www.big.or.jp/~vampire/support/list.cgi"TARGET="_blank">サポート掲示板</A>][<A HREF="./tool.cgi?rank"TARGET="down">発言ランキング</A>]
+<bgsound src="http://www.chat.or.jp/~xxx/midi/xxx.mid" loop="infinite">
+<EMBED SRC="http://www.chat.or.jp/~xxx/midi/xxx.mid" AUTOSTART=true LOOP=true VOLUME=50 WIDTH=144 HEIGHT=15 controls="smallconsole">
+</TD></TR>
+のように、MIDIデータへのタグを追加する。
+ネットスケープとIE用の2種類のタグを書き込みます。
+
+◆ログを二重にとる。--2種類の改造方法あり。
+(A)　無制限ログ採り
+pref.cgiの、sub writelogを
+sub writelog{	#$valueを@linesに加えたのち、書き込む
+	(@lines < $max-1) || (@lines = @lines[0 .. $max - 2]);
+	unshift( @lines,$value);
+	open(DB,">$chat_file") || &ended;
+		eval 'flock(DB,2);';
+		seek(DB,0,0);	print DB @lines;
+		eval 'flock(DB,8);';
+	close(DB);
+#########以下を追加する。
+$all_file = './all_log';
+	open(DB,">>$all_file") || &ended;
+	print DB "$value\n";
+	close(DB);
+#########
+}#writelog END
+にする。
+print DB "$value\n";は、
+print DB "$name > $chat ($host)\n";
+としても良い。
+(B)　行数制限ログ採り
+（本当は、$maxを大きくするだけの方がベター..なんですけど。）
+pref.cgiの、sub writelogを
+sub writelog{	#$valueを@linesに加えたのち、書き込む
+	(@lines < $max-1) || (@lines = @lines[0 .. $max - 2]);
+	unshift( @lines,$value);
+	open(DB,">$chat_file") || &ended;
+		eval 'flock(DB,2);';
+		seek(DB,0,0);	print DB @lines;
+		eval 'flock(DB,8);';
+	close(DB);
+#########以下を追加する。
+$chatb_file = './chat2_log';$maxb='1000';#2重ログの設定
+open(DB,"$chatb_file") || &ended;
+seek(DB,0,0);  @linesb = <DB>;   close(DB);
+	(@linesb < $maxb-1) || (@linesb = @linesb[0 .. $maxb - 2]);
+	unshift( @linesb,$value);
+	open(DB,">$chat2_file") || &ended;
+		eval 'flock(DB,2);';
+		seek(DB,0,0);	print DB @linesb;
+		eval 'flock(DB,8);';
+	close(DB);
+#########
+}#writelog END
+
+◆コマンド機能使用時の♪～が嫌っっ--2種類の改造方法あり。
+(A)　chat.cgiのsub write の、
+		$chat = '♪～';を、$chat = '.....';にする。
+(B)　chat.cgiのsub write の、
+&writelog;を、
+$value = '' if($chat eq '♪～');&writelog;
+にする。
+
+◆ホスト名表示が嫌っっ
+chat.cgiの、sub writeの、
+$hostを、<!--$host-->のようにコメント文にする。
+
+◆アクセス時に簡易メッセージを出す。（ピンポンシステム...）
+ピンポンシステムとは..ずっと昔にゆいちゃっとにあったものです。
+index.htmlに誰かがアクセスするとメッセージがでます。
+enter.cgiのsub htmlenterの一番最後を、
+_HTML_
+&ended;
+}#htmlenter END
+__END__
+から、
+_HTML_
+#########
+&readlog; &jikan;
+$value = "<FONT COLOR=\"#0000ff\"><B>Bell</B></FONT> &gt; <FONT COLOR=\"deeppink\" SIZE=2>$hostさん、おはいりやす....。</FONT><FONT COLOR=\"#888888\" SIZE=-1>($date)</FONT><HR>\n";
+&writelog;
+#########
+&ended;
+}#htmlenter END
+__END__
+に修正する。
+
+◆タグチェック方法を、特定のタグのみ許可するようにする。
+chat.cgiのsub tagを変更する。
+これまでの方式は禁止タグを追加する方式。
+###########################
+sub tag{	#このタグ閉じは、正しく閉じてある場合も余分に閉じます。（苦笑）
+$chat =~ s/<pre//ig;$chat =~ s/<meta//ig;$chat =~ s/<body//ig;#禁止タグ設定
+$chat =~ s/<applet//ig;$chat =~ s/<script//ig;$chat =~ s/<.*width//ig;
+$chat =~ s/<noscript//ig;	$chat =~ s/<embed//ig;$chat =~ s/<.*hight//ig;
+$chat =~ s/<title//ig;	$chat =~ s/<!--//ig;$chat =~ s/<.*mailbox://ig;
+	@tags = split( /</ ,  $chat ); $dmy = shift( @tags);
+###########################
+上記の部分を下記のようにすると、許可タグのみ使用できる。
+###########################
+sub tag{	#このタグ閉じは、正しく閉じてある場合も余分に閉じます。（苦笑）
+#許可タグをエスケープ
+$chat =~ s/<a/__TAG__a/ig;$chat =~ s/<font/__TAG__font/ig;
+$chat =~ s/<img/__TAG__img/ig;$chat =~ s/<blink/__TAG__blink/ig;
+$chat =~ s/<sup/__TAG__sup/ig;$chat =~ s/<sub/__TAG__sub/ig;
+#他のタグは全て禁止
+$chat =~ s!</!__TAG__/!ig;
+$chat =~ s/</&lt;/ig;$chat =~ s/__TAG__/</ig;
+	@tags = split( /</ ,  $chat ); $dmy = shift( @tags);
+###########################
+
+◆タグ有効/無効切り換えスイッチ
+enter.cgiの発言ウィンドウHTML部分に
+タグ有効:<INPUT TYPE=checkbox NAME="tag" VALUE="on" checked>
+のチェックボックスタグを入れる。
+次に、chat.cgiのsub write を以下のようにする。
+sub write {
+$chat =~ s/\t/&lt;/g if($FORM{'tag'} ne 'on');#この一行を追加。
+&tag if ($chat=~s/\t/</g);
+・・・・以下同じ
+
+◆一定時間発言が無かったらログを削除する。
+chat.cgiの最初の部分、
+&get; 	&write  if ($chat);
+&sanka;	&html;	&ended;	exit;
+を、
+&get; 	&write  if ($chat);
+if( -M "$chat_file" > (0.0007*10) ){#0.0007*10=1分*10=10分..くらいの間隔で発言が無ければログ削除
+undef @lines;$value = '';
+&writelog;
+}
+&sanka;	&html;	&ended;	exit;
+とする。
+
+◆特定の人だけ入室メッセージを変える。
+下記を参考に、enter.cgiを改造します。
+
+$brauza = $ENV{'HTTP_USER_AGENT'};
+$brauza =~s/<//g;
+$value = "<FONT COLOR=\"#0000ff\"><B>管理人</B></FONT> &gt; <B><FONT COLOR=\"$color\" SIZE=+2>$name</FONT></B><FONT COLOR=\"red\"><B>さん、おいでやすぅ。</B> $brauza</FONT><FONT COLOR=\"#888888\" SIZE=-1>($date $host)$histry</FONT><HR>\n";
+if($name eq 'ゆい'){
+$value = "<FONT COLOR=\"#0000ff\"><B>管理人</B></FONT> &gt; <FONT COLOR=\"#888888\" SIZE=-1>ゆいさんがやってきました。($date $host)$histry</FONT><HR>\n";
+}
+if($name eq 'ゆみ'){
+$value = "<FONT COLOR=\"#0000ff\"><B>管理人</B></FONT> &gt; <B>あら、<FONT COLOR=\"$color\" SIZE=+2>$name</FONT></B><FONT COLOR=\"red\"><B>さん、おこしやすぅ。</B> $brauza</FONT><FONT COLOR=\"#888888\" SIZE=-1>($date $host)$histry</FONT><HR>\n";
+}
+&writelog;
+&sanka;   &ended();   exit;
+
+
+
+
+#改造方法ここまで。
+__END__　　　　　　　　　　　　　　　　
