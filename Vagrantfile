@@ -85,6 +85,6 @@ EOF
     touch /var/www/html/chat.dat /var/www/html/rank.dat /var/www/html/sanka.dat
     chmod 777 /var/www/html/*
     echo "Succeeded in installing and setting cgi servers for yuichat!"
-    echo "Access to http://lcoalhost:8080."
+    echo "Access to http://localhost:8080."
   SHELL
 end
