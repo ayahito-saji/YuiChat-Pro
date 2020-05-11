@@ -1,19 +1,23 @@
 #! /usr/local/bin/perl
 #
-#ゆいちゃっとPro1.0(chat.cgi)
+#ゆいちゃっとPro1.0(chat.cgi)+ゅぃぼっと
 #
 require './jcodeLE.pl';
 require './pref.cgi';
+require './bot.pl';
+
+
 $| = 1;
-&init;	&decode;	&jikan;
-&get; 	&write  if ($chat);
-&sanka;	&html;	&ended();	exit;
+&init;
+&decode;	&jikan;	srand($times);
+&get; &sanka;	&write  if ($chat);
+	&html;	&ended();	exit;
 
 sub html {
 $buffer =~s/&chat=.*&/&/;$buffer =~s/reload=[\d]*/reload=${reload}/;
 $link = "./chat.cgi?${buffer}";
 print "Content-type: text/html\n\n";
-print "<HTML><HEAD><TITLE>$title</TITLE>$metacode\n";
+print "<HTML><HEAD><TITLE>$title</TITLE>\n";
 
 if($mode eq 'checked' ){
 	print "<META HTTP-EQUIV=\"Refresh\" CONTENT=\"$reload;URL=$link\">\n" if($reload);
@@ -37,14 +41,15 @@ _HTML_
 }#ノンフレームの発言欄ここまで
 
 #参加者表示
-$num = @sanka3;
+$num = @sanka3+1;
 print "<FONT SIZE=2>参加者($num)：";
-print "@sanka3</FONT SIZE=2><HR>\n";
+print "@sanka3ゅぃ</FONT SIZE=2><HR>\n";
 #ログ表示
 &readlog if(!@lines);
 (@lines < $window) || (@lines = @lines[0 .. $window - 1]);
-print @lines;
-   print "<H5 ALIGN=right><A HREF=\"http://www.cup.com/yui/\">ゆいちゃっと Pro(Free)</A></H5></BODY></HTML>\n";#この行だけは消さないでっ！！
+print "@lines\n";
+   print "<H5 ALIGN=right><A HREF=\"http://www.cup.com/yui/\">ゆいぼっと(Free)</A></H5></BODY></HTML>\n";#この行だけは消さないでっ！！
+
 }#html END
 
 sub get{
@@ -65,12 +70,18 @@ $chat = 'commandimg' if ($chat eq 'cut');
 $chat = "command".$host if ($chat eq 'clear');
 	if( $chat=~s/^command//){
 		foreach $line (@lines) {
-			#$line = '' if (index($line,$chat) >= 0 );
-			$line = '' if ($line=~/$chat/i);
+			$line = '' if( $line=~/$chat/i);
 		}
 		$chat = '♪～';
 	}
-
+#学習
+if ($chat =~ /(.*)===(.*)/) {#半角のイコール3個であることに注意。
+       $key = $1;
+$key='' if $key eq 'ゆい';
+       $res = $2;
+       if($key ne 'ゅぃ'){
+       &kioku;$chat="...（ゅぃを教育）<hr><font color=\"hotpink\">ゅぃ</font>&gt;$key　には○○○（ぴぃ～）と言えばよいのね。...めもめも";}
+       }#学習
 	if ($chat eq '退室') {
 		$value = "<FONT COLOR=\"blue\"><B>管理人</B></FONT> &gt; <B><FONT COLOR=\"$color\" SIZE=+2>$name</FONT><FONT COLOR=\"red\">さん、またきておくれやすぅ。</FONT></B><FONT COLOR=\"#888888\" SIZE=-1>($date $host)</FONT><HR>\n";
 		&writelog;
@@ -81,8 +92,25 @@ $chat = "command".$host if ($chat eq 'clear');
 		}else {
 			$value = "<FONT COLOR=\"$color\"><B>$name</B></FONT> &gt; <B>$chat $emoji</B><FONT COLOR=\"#888888\" SIZE=-1>($date $host)</FONT><HR>\n";
 		}
-&count;#発言ランキングがいらなければ、削除。
+	unshift( @lines,$value);
+#bot
+$chat='' if($botf eq '2');#学習後はそれ以上反応させない。
+if ($chat eq 'おみくじ') {&bot3;$chat='';}
+if( $num == 2){ $chat.='＞ゅぃ' if($chat);	}#二人きりのときだけ、特別。
+if($chat =~/(ゅぃ|ゆい)/){
+$rnd=rand(1);
+if( $rnd>0.11 ){
+&bot;#辞書応答
+}else{
+&bot2;#つっこみ？
+}
+}
+#bot
+$value=shift( @lines);#writelogルーチンが、@linesに、$valueを加えて書き込むため...
 &writelog;
+$dmy=shift( @lines) if($botflag);#ボットの応答を遅らせる...（この行は削除可）
+
+#botのための処理ここまで
 
 }#write END
 
@@ -110,28 +138,4 @@ $chat =~ s/<plain//ig;$chat =~ s/<.*font-size//ig;$chat=~s/<img.*\?//ig;
 	$chat =~s/<.*(img|href).*on.*=/TagError?/ig;
 }#tag END
 
-sub count{	#発言ランキングの記録するとこ
-open(LOG,"$rank_file") || &ended('$rank_file open error');
-	seek(LOG,0,0);
-	@line2 = <LOG>;
-close(LOG);
-
-$flag=1;
-foreach $line (@line2) {
-	($name2, $count,$date2,$dmy) = split(/\t/, $line);
-	next if($name2 ne $name);
-	$count++;	$flag = 0;
-	$line = "$name\t$count\t$times\t$host\n";
-	last;
-}#foreach
-push(@line2,"$name\t1\t$times\t$host\n") if($flag);
-#ランキングファイルのクリアです。rankingclearは、他の単語に変えてね。
-if($chat eq 'rankingclear') { undef(@line2); $value=''; }
-open(LOG,">$rank_file")  || &ended('$rank_file write error');
-	eval 'flock(LOG,2);';
-	seek(LOG,0,0);
-	print LOG @line2;
-	eval 'flock(LOG,8);';
-close(LOG);
-}#count END
 __END__
